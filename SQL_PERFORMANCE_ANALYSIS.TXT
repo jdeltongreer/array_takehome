@@ -1,0 +1,25 @@
+Assignment 5
+You discover the SQL database performance is being impacted by many concurrent long running queries.
+Describe your approach in how you'd diagnose, test and resolve the issue. Detail the tools and SQL statements you'd execute.
+
+1. Use SQL Server activity monitor in SSMS. Navigate to 'active expensive queries' to identify long running queries.
+2. Query the plan cache to see most expensive historical queries.
+SELECT  st.text,
+        qp.query_plan,
+        qs.*
+FROM    (
+    SELECT  TOP 50 *
+    FROM    sys.dm_exec_query_stats
+    ORDER BY total_worker_time DESC
+) AS qs
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) AS st
+CROSS APPLY sys.dm_exec_query_plan(qs.plan_handle) AS qp
+WHERE qs.max_worker_time > 300
+      OR qs.max_elapsed_time > 300
+3. Triage queries by purpose and expense. Some may be ETL jobs or other processes one might expect to take a while.
+4. Verify correct indexes. Use database engine tuning advisor.
+5. Obtain relevant DML, DDL. Remove query and join hints.
+6. Examine live execution plan or actual execution plan as appropriate.
+7. Rerun query or job, with filters if appropriate.
+8. Repeat steps as needed to understand why a query is running long and to modify it as needed.
+9. Commit changes.

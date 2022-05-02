@@ -1,0 +1,34 @@
+Process Description - Populate Client Customer via CSV
+
+Assumptions:
+Assumed schema is CLIENT_CUSTOMER_NAME, CLIENT_CUSTOMER_EXTERNAL ID, or customer format mapped to these fields.
+Process may need to be repeated with this client or another.
+We will use an ETL pipeline. This is modeled on Azure Data Factory but could be a tool with similar capabilities.
+Customer will not include a reference to himself in the dataset, we will need to manually pass this parameter.
+
+
+
+1. General - Receive client file from customer. No method of receipt specified, could be email, file exchange etc.
+2. Pipeline - Copy customer file to blob storage ingestion directory
+3. Pipeline - Run validation activity against a reference file with the same schema. Ensure is valid CSV and valid schema
+4. Pipeline - Run SQL statement to truncate before load.
+	TRUNCATE TABLE STG.STG_NEW_CLIENT_CUSTOMER
+
+5. Pipelione - Run copy data activity to copy csv blob to SQL staging table. Target insertion procedure, pass @CLIENTID at runtime.
+	CREATE PROCEDURE DBO.USP_INSERT_NEW_CLIENT_CUSTOMER @CLIENT_ID INT AS
+	BEGIN
+	INSERT INTO STG.NEW_CLIENT_CUSTOMER (CLIENT_ID, CLIENT_CUSTOMER_EXTERNAL_ID, CLIENT_CUSTOMER_NAME)
+	VALUES (@CLIENT_ID, CLIENT_CUSTOMER_EXTERNAL_ID, CLIENT_CUSTOMER_NAME)
+	END
+
+
+6. Pipeline - Execute procedure to load stage data to client customer table
+
+	CREATE PROCEDURE DBO.USP_INSERT_NEW_CLIENT_CUSTOMER @CLIENT_ID INT AS
+		BEGIN
+		INSERT INTO DBO.CLIENT_CUSTOMER (CLIENT_ID, CLIENT_CUSTOMER_EXTERNAL_ID, CLIENT_CUSTOMER_NAME)
+			SELECT @CLIENT_ID
+    		,CLIENT_CUSTOMER_EXTERNAL_ID
+    		,CLIENT_CUSTOMER NAME
+		FROM STG.NEW_CLIENT_CUSTOMER
+		END
